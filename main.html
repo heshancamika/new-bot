@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHADOW-X-MINI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Poppins', Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 28px;
+            padding: 30px;
+            width: 100%;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo i {
+            font-size: 60px;
+            color: #8a2be2;
+            background: linear-gradient(135deg, #8a2be2, #00bfff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .logo h1 {
+            font-size: 28px;
+            margin-top: 10px;
+            background: linear-gradient(135deg, #fff, #8a2be2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .logo p {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-pair {
+            background: linear-gradient(135deg, #8a2be2, #4b0082);
+            color: white;
+            box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
+        }
+
+        .btn-qr {
+            background: linear-gradient(135deg, #00bfff, #0066cc);
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 191, 255, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            filter: brightness(1.1);
+        }
+
+        .input-area {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .input-container {
+            display: flex;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50px;
+            padding: 5px;
+            gap: 10px;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            background: transparent;
+            color: white;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .input-container input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .input-container button {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #8a2be2, #4b0082);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .input-container button:hover {
+            transform: scale(1.02);
+        }
+
+        .result-area {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .code-box {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .code-box span {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff88;
+            letter-spacing: 5px;
+        }
+
+        .qr-box {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .qr-box img {
+            max-width: 200px;
+            border-radius: 15px;
+            background: white;
+            padding: 10px;
+        }
+
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .message.success {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+
+        .message.error {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+        }
+
+        .message.info {
+            background: rgba(0, 191, 255, 0.2);
+            color: #00bfff;
+        }
+
+        .features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .feature-badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        @media (max-width: 500px) {
+            .btn-group {
+                flex-direction: column;
+            }
+            .btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="logo">
+                <i class="fas fa-robot"></i>
+                <h1>SHADOW-X-MINI</h1>
+                <p>WhatsApp Multi-Device Bot</p>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-pair" id="showPairBtn">
+                    <i class="fas fa-link"></i> Pair with Code
+                </button>
+                <button class="btn btn-qr" id="showQRBtn">
+                    <i class="fas fa-qrcode"></i> Pair with QR
+                </button>
+            </div>
+
+            <!-- Pair with Code Section -->
+            <div id="pairSection" class="input-area">
+                <div class="input-container">
+                    <input type="tel" id="phoneNumber" placeholder="+947xxxxxxxxx" value="+94729101856">
+                    <button id="submitPair">Generate Code</button>
+                </div>
+                <div id="pairResult" class="result-area"></div>
+            </div>
+
+            <!-- QR Code Section (Hidden by default) -->
+            <div id="qrSection" class="input-area" style="display: none;">
+                <div class="input-container">
+                    <input type="tel" id="qrPhoneNumber" placeholder="+947xxxxxxxxx" value="+94729101856">
+                    <button id="submitQR">Generate QR</button>
+                </div>
+                <div id="qrResult" class="result-area"></div>
+            </div>
+
+            <div class="features">
+                <span class="feature-badge"><i class="fas fa-eye"></i> Auto Status View</span>
+                <span class="feature-badge"><i class="fas fa-heart"></i> Auto React</span>
+                <span class="feature-badge"><i class="fas fa-trash-alt"></i> Anti Delete</span>
+                <span class="feature-badge"><i class="fas fa-music"></i> Song Download</span>
+                <span class="feature-badge"><i class="fab fa-tiktok"></i> TikTok Download</span>
+                <span class="feature-badge"><i class="fab fa-facebook"></i> FB Download</span>
+                <span class="feature-badge"><i class="fas fa-robot"></i> AI Chat</span>
+            </div>
+
+            <div class="footer">
+                <p>© 2024 SHADOW-X-MINI | Powered by Baileys</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.7.9/axios.min.js"></script>
+    <script>
+        const pairSection = document.getElementById('pairSection');
+        const qrSection = document.getElementById('qrSection');
+        const pairResult = document.getElementById('pairResult');
+        const qrResult = document.getElementById('qrResult');
+
+        document.getElementById('showPairBtn').onclick = () => {
+            pairSection.style.display = 'block';
+            qrSection.style.display = 'none';
+            pairResult.innerHTML = '';
+            qrResult.innerHTML = '';
+        };
+
+        document.getElementById('showQRBtn').onclick = () => {
+            pairSection.style.display = 'none';
+            qrSection.style.display = 'block';
+            pairResult.innerHTML = '';
+            qrResult.innerHTML = '';
+        };
+
+        // Pair with Code
+        document.getElementById('submitPair').onclick = async () => {
+            let number = document.getElementById('phoneNumber').value;
+            number = number.replace(/[^0-9]/g, '');
+
+            if (!number || number.length < 10) {
+                pairResult.innerHTML = '<div class="message error">❌ Please enter a valid phone number with country code!</div>';
+                return;
+            }
+
+            pairResult.innerHTML = '<div class="message info"><i class="fas fa-spinner fa-pulse"></i> Generating pairing code...</div>';
+
+            try {
+                const { data } = await axios.get(`/code?number=${number}`);
+                
+                if (data.code) {
+                    pairResult.innerHTML = `
+                        <div class="message success">✅ Pairing Code Generated!</div>
+                        <div class="code-box">
+                            <span>${data.code}</span>
+                        </div>
+                        <div class="message info">
+                            <i class="fas fa-info-circle"></i> 
+                            1️⃣ Copy this code<br>
+                            2️⃣ Open WhatsApp → Linked Devices → Link with Phone Number<br>
+                            3️⃣ Paste the code
+                        </div>
+                    `;
+                } else {
+                    pairResult.innerHTML = '<div class="message error">❌ Failed to generate code. Try again!</div>';
+                }
+            } catch (error) {
+                pairResult.innerHTML = '<div class="message error">❌ Server error. Please try again!</div>';
+            }
+        };
+
+        // Pair with QR
+        document.getElementById('submitQR').onclick = async () => {
+            let number = document.getElementById('qrPhoneNumber').value;
+            number = number.replace(/[^0-9]/g, '');
+
+            if (!number || number.length < 10) {
+                qrResult.innerHTML = '<div class="message error">❌ Please enter a valid phone number with country code!</div>';
+                return;
+            }
+
+            qrResult.innerHTML = '<div class="message info"><i class="fas fa-spinner fa-pulse"></i> Generating QR code...</div>';
+
+            try {
+                const { data } = await axios.get(`/code?number=${number}&type=qr`);
+                
+                if (data.qr) {
+                    qrResult.innerHTML = `
+                        <div class="message success">✅ QR Code Generated!</div>
+                        <div class="qr-box">
+                            <img src="${data.qr}" alt="QR Code">
+                        </div>
+                        <div class="message info">
+                            <i class="fas fa-info-circle"></i> 
+                            Scan this QR code with WhatsApp on your phone
+                        </div>
+                    `;
+                } else {
+                    qrResult.innerHTML = '<div class="message error">❌ Failed to generate QR code.</div>';
+                }
+            } catch (error) {
+                qrResult.innerHTML = '<div class="message error">❌ Server error. Please try again!</div>';
+            }
+        };
+    </script>
+</body>
+          </html>
