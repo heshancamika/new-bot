@@ -6,7 +6,6 @@ const pino = require('pino');
 const moment = require('moment-timezone');
 const axios = require('axios');
 const yts = require('yt-search');
-const QRCode = require('qrcode');
 const os = require('os'); // ✅ මෙම පේළිය එකතු කරන්න
 const { initUserEnvIfMissing } = require('./settingsdb');
 const { initEnvsettings, getSetting } = require('./settings');
@@ -614,15 +613,6 @@ async function shadowPair(number, res, type = 'code') {
                 }
             }
         }
-    } else if (type === 'qr') {
-        socket.ev.on('connection.update', async (update) => {
-            const { qr } = update;
-            if (qr && !res.headersSent) {
-                qrCode = await QRCode.toDataURL(qr);
-                res.send({ qr: qrCode });
-            }
-        });
-    }
 
     if (type === 'code' && pairingCode) {
         if (!res.headersSent) {
