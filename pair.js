@@ -1,4 +1,4 @@
-මෙන්න සම්පූර්ණ fixed pair.js file එක:
+
 
 const express = require('express');
 const fs = require('fs-extra');
