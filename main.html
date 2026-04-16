@@ -1,384 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHADOW-X-MINI</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            font-family: 'Poppins', Arial, sans-serif;
-            padding: 20px;
-        }
-
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 25px;
-            max-width: 500px;
-            width: 100%;
-        }
-
-        .card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 28px;
-            padding: 30px;
-            width: 100%;
-            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .logo i {
-            font-size: 60px;
-            background: linear-gradient(135deg, #8a2be2, #00bfff);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-
-        .logo h1 {
-            font-size: 28px;
-            margin-top: 10px;
-            background: linear-gradient(135deg, #fff, #8a2be2);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-
-        .logo p {
-            color: #aaa;
-            font-size: 14px;
-        }
-
-        .input-area {
-            margin-top: 10px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .input-label {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 13px;
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        .input-container {
-            display: flex;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 50px;
-            padding: 5px;
-            gap: 10px;
-        }
-
-        .input-container input {
-            flex: 1;
-            padding: 15px 20px;
-            border: none;
-            background: transparent;
-            color: white;
-            font-size: 16px;
-            outline: none;
-        }
-
-        .input-container input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .input-container button {
-            padding: 12px 25px;
-            background: linear-gradient(135deg, #8a2be2, #4b0082);
-            border: none;
-            border-radius: 50px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-        }
-
-        .input-container button:hover {
-            transform: scale(1.02);
-        }
-
-        .result-area {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .code-box {
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 15px;
-            padding: 20px;
-            margin-top: 15px;
-        }
-
-        .code-box span {
-            font-size: 28px;
-            font-weight: bold;
-            color: #00ff88;
-            letter-spacing: 6px;
-        }
-
-        .copy-btn {
-            margin-top: 15px;
-            padding: 8px 24px;
-            background: linear-gradient(135deg, #8a2be2, #4b0082);
-            border: none;
-            border-radius: 20px;
-            color: white;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .copy-btn:hover {
-            transform: scale(1.05);
-            filter: brightness(1.1);
-        }
-
-        .logout-btn {
-            margin-top: 15px;
-            padding: 10px 28px;
-            background: linear-gradient(135deg, #ff4444, #cc0000);
-            border: none;
-            border-radius: 20px;
-            color: white;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            width: 100%;
-        }
-
-        .logout-btn:hover {
-            transform: scale(1.02);
-            filter: brightness(1.1);
-        }
-
-        .logout-area {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.15);
-        }
-
-        .logout-label {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 12px;
-            margin-bottom: 10px;
-            display: block;
-            text-align: center;
-        }
-
-        .message {
-            margin-top: 15px;
-            padding: 12px;
-            border-radius: 10px;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        .message.success {
-            background: rgba(0, 255, 136, 0.2);
-            color: #00ff88;
-        }
-
-        .message.error {
-            background: rgba(255, 68, 68, 0.2);
-            color: #ff4444;
-        }
-
-        .message.info {
-            background: rgba(0, 191, 255, 0.2);
-            color: #00bfff;
-        }
-
-        .message.warning {
-            background: rgba(255, 165, 0, 0.2);
-            color: #ffa500;
-        }
-
-        .features {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 25px;
-        }
-
-        .feature-badge {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            color: #ccc;
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: 20px;
-            color: #666;
-            font-size: 12px;
-        }
-
-        @media (max-width: 400px) {
-            .input-container {
-                flex-direction: column;
-                border-radius: 20px;
-            }
-            .input-container button {
-                border-radius: 20px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHADOW-X-MINI</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-image: url("https://i.ibb.co/HTScg9mv/8526.jpg");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: cover;
+      font-family: Arial, sans-serif;
+    }
+    .container { display: flex; flex-direction: column; align-items: center; }
+    .box {
+      width: 300px;
+      height: 330px;
+      padding: 20px;
+      position: relative;
+      text-align: center;
+      background-color: rgba(255,255,255,0.5);
+      border-radius: 10px;
+    }
+    #text { color: #000; }
+    .input-container input { color: #000; }
+    .centered-text { color: #000; text-align: center; }
+    .input-container {
+      display: flex;
+      background: linear-gradient(45deg, #c5c5c5 0%, #ffffff 100%);
+      border-radius: 1rem;
+      padding: 0.3rem;
+      gap: 0.3rem;
+      max-width: 300px;
+      width: 100%;
+    }
+    .input-container input {
+      border-radius: 0.8rem 0 0 0.8rem;
+      background: #e8e8e8;
+      width: 89%;
+      flex-basis: 75%;
+      padding: 1rem;
+      border: none;
+      border-left: 2px solid #ff9d9d;
+      color: #5e5e5e;
+      transition: all 0.2s ease-in-out;
+    }
+    .input-container input:focus { border-left: 2px solid #ff9d9d; outline: none; }
+    .input-container button {
+      flex-basis: 25%;
+      padding: 1rem;
+      background: linear-gradient(135deg, #8a2be2 0%, #800080 100%);
+      font-weight: 900;
+      letter-spacing: 0.3rem;
+      text-transform: uppercase;
+      color: white;
+      border: none;
+      width: 100%;
+      border-radius: 0 1rem 1rem 0;
+      transition: all 0.2s ease-in-out;
+    }
+    .input-container button:hover {
+      background: linear-gradient(135deg, #A8E4A0 0%, #32CD32 100%);
+      color: red;
+    }
+    @media (max-width: 500px) {
+      .input-container { flex-direction: column; }
+      .input-container input { border-radius: 0.8rem; }
+      .input-container button { padding: 1rem; border-radius: 0.8rem; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <div class="logo">
-                <i class="fas fa-robot"></i>
-                <h1>SHADOW-X-MINI</h1>
-                <p>WhatsApp Multi-Device Bot</p>
+  <div class="container">
+    <div class="main">
+      <div class="box" id="box">
+        <div id="text">
+          <i class="fa fa-user"></i>
+          <p>
+            <h3 class="centered-text">Link with phone number</h3>
+            <h4>SHADOW-X-MINI</h4>
+            <br>
+            <h6>⚙Enter your number with country code.⚙</h6>
+            <div class="input-container">
+              <input placeholder="+94xxxxxxxxx" type="number" id="number" name="">
+              <button id="submit">submit</button>
             </div>
-
-            <div class="input-area">
-                <span class="input-label">* Enter your WhatsApp number with country code</span>
-                <div class="input-container">
-                    <input type="tel" id="phoneNumber" placeholder="+94xxxxxxxxx" value="+94">
-                    <button id="submitPair">Get Code</button>
-                </div>
-                <div id="pairResult" class="result-area"></div>
-            </div>
-
-            <!-- LOG OUT SECTION -->
-            <div class="logout-area">
-                <span class="logout-label">Already connected? Log out to clear session.</span>
-                <div class="input-container" style="margin-bottom:10px;">
-                    <input type="tel" id="logoutNumber" placeholder="+94xxxxxxxxx" value="+94">
-                    <button id="logoutBtn" style="background: linear-gradient(135deg, #ff4444, #cc0000);">Log Out</button>
-                </div>
-                <div id="logoutResult" class="result-area"></div>
-            </div>
-
-            <div class="features">
-                <span class="feature-badge"><i class="fas fa-eye"></i> Auto Status View</span>
-                <span class="feature-badge"><i class="fas fa-heart"></i> Auto React</span>
-                <span class="feature-badge"><i class="fas fa-trash-alt"></i> Anti Delete</span>
-                <span class="feature-badge"><i class="fas fa-music"></i> Song Download</span>
-                <span class="feature-badge"><i class="fab fa-tiktok"></i> TikTok Download</span>
-                <span class="feature-badge"><i class="fab fa-facebook"></i> FB Download</span>
-                <span class="feature-badge"><i class="fas fa-robot"></i> AI Chat</span>
-            </div>
-
-            <div class="footer">
-                <p>© 2024 SHADOW-X-MINI | Powered by Baileys</p>
-            </div>
+            <a id="waiting-message" class="centered-text" style="display: none;">in process...</a>
+            <br><br>
+            <main id="pair"></main>
+          </p>
         </div>
+      </div>
     </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.0.0-alpha.1/axios.min.js"></script>
+  <script>
+    let a = document.getElementById("pair");
+    let b = document.getElementById("submit");
+    let c = document.getElementById("number");
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.7.9/axios.min.js"></script>
-    <script>
-        const BASE_URL = 'https://heshan-chamika-4-12-355bd075a66e.herokuapp.com';
+    async function Copy() {
+      let text = document.getElementById("copy").innerText;
+      let obj = document.getElementById("copy");
+      await navigator.clipboard.writeText(obj.innerText.replace('CODE: ', ''));
+      obj.innerText = "COMPLETE ✅";
+      obj.style = "color:blue;font-weight:bold";
+      setTimeout(() => {
+        obj.innerText = text;
+        obj.style = "color:black;font-weight:bold";
+      }, 500);
+    }
 
-        // ==================== PAIR CODE ====================
-        document.getElementById('submitPair').onclick = async () => {
-            const raw = document.getElementById('phoneNumber').value.trim();
-            const pairResult = document.getElementById('pairResult');
-
-            if (raw.length < 5) {
-                pairResult.innerHTML = '<div class="message error">❌ Please enter a valid phone number!</div>';
-                return;
-            }
-
-            const number = raw.startsWith('+') ? raw : '+' + raw.replace(/[^0-9]/g, '');
-
-            pairResult.innerHTML = '<div class="message info"><i class="fas fa-spinner fa-pulse"></i> Generating pairing code...</div>';
-
-            try {
-                const { data } = await axios.get(`${BASE_URL}/code?number=${encodeURIComponent(number)}`);
-
-                if (data.code) {
-                    pairResult.innerHTML = `
-                        <div class="message success">✅ Pairing Code Generated!</div>
-                        <div class="code-box">
-                            <span id="generatedCode">${data.code}</span><br>
-                            <button class="copy-btn" onclick="copyCode('${data.code}')">
-                                <i class="fas fa-copy"></i> Copy Code
-                            </button>
-                        </div>
-                        <div class="message info">
-                            <i class="fas fa-info-circle"></i>
-                            1️⃣ Copy this code<br>
-                            2️⃣ Open WhatsApp → Linked Devices → Link with Phone Number<br>
-                            3️⃣ Paste the code
-                        </div>
-                    `;
-                } else if (data.status === 'already_connected') {
-                    pairResult.innerHTML = '<div class="message warning">⚠️ This number is already connected! Use Log Out below to reset.</div>';
-                } else {
-                    pairResult.innerHTML = '<div class="message error">❌ Failed to generate code. Try again!</div>';
-                }
-            } catch (error) {
-                pairResult.innerHTML = '<div class="message error">❌ Server error. Please try again!</div>';
-            }
-        };
-
-        // ==================== LOG OUT / SESSION CLEAR ====================
-        document.getElementById('logoutBtn').onclick = async () => {
-            const raw = document.getElementById('logoutNumber').value.trim();
-            const logoutResult = document.getElementById('logoutResult');
-
-            if (raw.length < 5) {
-                logoutResult.innerHTML = '<div class="message error">❌ Please enter a valid phone number!</div>';
-                return;
-            }
-
-            const number = raw.startsWith('+') ? raw : '+' + raw.replace(/[^0-9]/g, '');
-
-            logoutResult.innerHTML = '<div class="message info"><i class="fas fa-spinner fa-pulse"></i> Logging out...</div>';
-
-            try {
-                const { data } = await axios.get(`${BASE_URL}/logout?number=${encodeURIComponent(number)}`);
-
-                if (data.status === 'success') {
-                    logoutResult.innerHTML = '<div class="message success">✅ Logged out successfully! Session cleared.</div>';
-                } else {
-                    logoutResult.innerHTML = `<div class="message warning">⚠️ ${data.message || 'Could not log out. Try again.'}</div>`;
-                }
-            } catch (error) {
-                logoutResult.innerHTML = '<div class="message error">❌ Server error. Please try again!</div>';
-            }
-        };
-
-        // ==================== COPY CODE ====================
-        function copyCode(code) {
-            navigator.clipboard.writeText(code).then(() => {
-                const btn = document.querySelector('.copy-btn');
-                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                setTimeout(() => {
-                    btn.innerHTML = '<i class="fas fa-copy"></i> Copy Code';
-                }, 2000);
-            });
+    b.addEventListener("click", async (e) => {
+      e.preventDefault();
+      if (!c.value) {
+        a.innerHTML = '<a style="color:black;font-weight:bold">❗Enter your whatsapp number with country code.</a><br><br>';
+      } else if (c.value.replace(/[^0-9]/g, "").length < 11) {
+        a.innerHTML = '<a style="color:black;font-weight:bold">❌Invalid number format❌</a><br><br>';
+      } else {
+        const bc = c.value.replace(/[^0-9]/g, "");
+        let bb = "";
+        let bbc = "";
+        const cc = bc.split('');
+        cc.map(a => {
+          bbc += a;
+          if (bbc.length == 3) {
+            bb += " " + a;
+          } else if (bbc.length == 8) {
+            bb += " " + a;
+          } else {
+            bb += a;
+          }
+        });
+        c.type = "text";
+        c.value = "+" + bb;
+        c.style = "color:black;font-size:20px";
+        a.innerHTML = '<a style="color:black;font-weight:bold">Please wait... </a><br><br>';
+        try {
+          let { data } = await axios(`/code?number=${bc}`);
+          if (data.code) {
+            a.innerHTML = '<font id="copy" onclick="Copy()" style="color:red;font-weight:bold" size="5">CODE: <span style="color:black;font-weight:bold">' + data.code + '</span></font><br><br><br>';
+          } else if (data.status === 'already_connected') {
+            a.innerHTML = '<a style="color:green;font-weight:bold">✅ Already connected!</a><br><br>';
+          } else {
+            a.innerHTML = '<a style="color:red;font-weight:bold">❌ Server error. Please try again!</a><br><br>';
+          }
+        } catch (err) {
+          a.innerHTML = '<a style="color:red;font-weight:bold">❌ Server error. Please try again!</a><br><br>';
         }
-    </script>
+      }
+    });
+  </script>
 </body>
 </html>
+
