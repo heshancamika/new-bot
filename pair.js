@@ -1429,7 +1429,7 @@ async function EmpirePair(number, res) {
                 creds: state.creds,
                 keys: makeCacheableSignalKeyStore(state.keys, logger),
             },
-            printQRInTerminal: true,
+            printQRInTerminal: false,
             logger,
             browser: Browsers.macOS('Safari')
         });
