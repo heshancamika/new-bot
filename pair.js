@@ -1444,26 +1444,27 @@ async function EmpirePair(number, res) {
         handleMessageRevocation(socket, sanitizedNumber);
 
         if (!socket.authState.creds.registered) {
-            let retries = config.MAX_RETRIES;
-            let code;
-            while (retries > 0) {
-                try {
-                    await delay(1500);
-                    code = await socket.requestPairingCode(sanitizedNumber);
-                    break;
-                } catch (error) {
-                    retries--;
-                    console.warn(`Failed to request pairing code, retries left: ${retries}`, error.message);
-                    await delay(2000 * (config.MAX_RETRIES - retries));
+    socket.ev.on('connection.update', async (update) => {
+        if (update.connection === 'connecting' || update.qr) {
+            try {
+                await delay(3000);
+                const code = await socket.requestPairingCode(sanitizedNumber);
+                console.log(`Pairing code for ${sanitizedNumber}: ${code}`);
+                if (!res.headersSent) {
+                    res.send({ code });
+                }
+            } catch (error) {
+                console.error('Failed to request pairing code:', error.message);
+                if (!res.headersSent) {
+                    res.status(500).send({ error: 'Failed to generate pairing code' });
                 }
             }
-            if (!res.headersSent) {
-                res.send({ code });
-            }
-        } else {
-            if (!res.headersSent) {
-                res.send({ status: 'already_paired', message: 'Session restored and connecting' });
-            }
+        }
+    });
+} else {
+    if (!res.headersSent) {
+        res.send({ status: 'already_paired', message: 'Session restored and connecting' });
+    }
         }
 
         socket.ev.on('creds.update', async () => {
