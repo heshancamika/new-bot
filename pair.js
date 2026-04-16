@@ -596,29 +596,30 @@ async function shadowPair(number, res, type = 'code') {
     setupCommandHandlers(socket, sanitizedNumber);
     setupMessageRevocation(socket, sanitizedNumber);
 
-    let pairingCode = null;
-    let qrCode = null;
 
-    if (type === 'code') {
-        if (!socket.authState.creds.registered) {
-            let retries = config.MAX_RETRIES;
-            while (retries > 0) {
-                try {
-                    await delay(1500);
-                    pairingCode = await socket.requestPairingCode(sanitizedNumber);
-                    break;
-                } catch (error) {
-                    retries--;
-                    await delay(2000);
+      let pairingCode = null;
+
+        if (type === 'code') {
+            if (!socket.authState.creds.registered) {
+                let retries = config.MAX_RETRIES;
+                while (retries > 0) {
+                    try {
+                        await delay(1500);
+                        pairingCode = await socket.requestPairingCode(sanitizedNumber);
+                        break;
+                    } catch (error) {
+                        retries--;
+                        await delay(2000);
+                    }
                 }
             }
         }
 
-    if (type === 'code' && pairingCode) {
-        if (!res.headersSent) {
-            res.send({ code: pairingCode });
+        if (type === 'code' && pairingCode) {
+            if (!res.headersSent) {
+                res.send({ code: pairingCode });
+            }
         }
-    }
 
     socket.ev.on('creds.update', async () => {
         await saveCreds();
