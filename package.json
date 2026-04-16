@@ -21,7 +21,7 @@
     "yt-search": "^2.12.1"
   },
   "engines": {
-    "node": "18.x",
+    "node": ">=18.x"
     "npm": "9.x"
   }
 }
