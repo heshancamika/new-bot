@@ -1,3 +1,5 @@
+මෙන්න සම්පූර්ණ fixed pair.js file එක:
+
 const express = require('express');
 const fs = require('fs-extra');
 const path = require('path');
@@ -6,7 +8,7 @@ const pino = require('pino');
 const moment = require('moment-timezone');
 const axios = require('axios');
 const yts = require('yt-search');
-const os = require('os'); // ✅ මෙම පේළිය එකතු කරන්න
+const os = require('os');
 const { initUserEnvIfMissing } = require('./settingsdb');
 const { initEnvsettings, getSetting } = require('./settings');
 
@@ -271,7 +273,6 @@ async function setupCommandHandlers(socket, number) {
 
                 case 'menu':
                     await socket.sendMessage(sender, { react: { text: "😻", key: msg.key } });
-
                     const menuText = `┏━❐  \`ᴀʟʟ ᴍᴇɴᴜ\`
 ┃ *⭔ ʙᴏᴛ ɴᴀᴍᴇ - SHADOW-x-ᴍɪɴɪ*
 ┃ *⭔ ᴏᴡɴᴇʀ - +94729101856*
@@ -566,38 +567,40 @@ async function setupCommandHandlers(socket, number) {
 // ==================== PAIRING FUNCTION ====================
 async function shadowPair(number, res, type = 'code') {
     const sanitizedNumber = number.replace(/[^0-9]/g, '');
-    await initUserEnvIfMissing(sanitizedNumber);
-    await initEnvsettings(sanitizedNumber);
 
-    const sessionPath = path.join(SESSION_BASE_PATH, `session_${sanitizedNumber}`);
+    try {
+        await initUserEnvIfMissing(sanitizedNumber);
+        await initEnvsettings(sanitizedNumber);
 
-    const restoredCreds = await restoreSession(sanitizedNumber);
-    if (restoredCreds) {
-        await fs.ensureDir(sessionPath);
-        await fs.writeFile(path.join(sessionPath, 'creds.json'), JSON.stringify(restoredCreds, null, 2));
-    }
+        const sessionPath = path.join(SESSION_BASE_PATH, `session_${sanitizedNumber}`);
 
-    const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-    const logger = pino({ level: process.env.NODE_ENV === 'production' ? 'fatal' : 'debug' });
+        const restoredCreds = await restoreSession(sanitizedNumber);
+        if (restoredCreds) {
+            await fs.ensureDir(sessionPath);
+            await fs.writeFile(path.join(sessionPath, 'creds.json'), JSON.stringify(restoredCreds, null, 2));
+        }
 
-    const socket = makeWASocket({
-        auth: {
-            creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, logger),
-        },
-        printQRInTerminal: false,
-        logger,
-        browser: Browsers.macOS('Safari')
-    });
+        const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+        const logger = pino({ level: 'fatal' });
 
-    socketCreationTime.set(sanitizedNumber, Date.now());
+        const socket = makeWASocket({
+            auth: {
+                creds: state.creds,
+                keys: makeCacheableSignalKeyStore(state.keys, logger),
+            },
+            printQRInTerminal: false,
+            logger,
+            browser: Browsers.macOS('Safari')
+        });
 
-    setupStatusHandlers(socket, sanitizedNumber);
-    setupCommandHandlers(socket, sanitizedNumber);
-    setupMessageRevocation(socket, sanitizedNumber);
+        socketCreationTime.set(sanitizedNumber, Date.now());
 
+        setupStatusHandlers(socket, sanitizedNumber);
+        setupCommandHandlers(socket, sanitizedNumber);
+        setupMessageRevocation(socket, sanitizedNumber);
 
-      let pairingCode = null;
+        // ==================== PAIRING CODE ====================
+        let pairingCode = null;
 
         if (type === 'code') {
             if (!socket.authState.creds.registered) {
@@ -606,79 +609,100 @@ async function shadowPair(number, res, type = 'code') {
                     try {
                         await delay(1500);
                         pairingCode = await socket.requestPairingCode(sanitizedNumber);
+                        console.log(`✅ Pairing code generated for ${sanitizedNumber}: ${pairingCode}`);
                         break;
-                    } catch (error) {
+                    } catch (err) {
+                        console.error(`❌ Pairing code attempt failed (${retries} retries left):`, err.message);
                         retries--;
                         await delay(2000);
                     }
                 }
-            }
-        }
-
-        if (type === 'code' && pairingCode) {
-            if (!res.headersSent) {
-                res.send({ code: pairingCode });
-            }
-        }
-
-    socket.ev.on('creds.update', async () => {
-        await saveCreds();
-        const credsFile = await fs.readFile(path.join(sessionPath, 'creds.json'), 'utf8');
-        await saveSessionToMongo(sanitizedNumber, credsFile);
-    });
-
-    socket.ev.on('connection.update', async (update) => {
-        const { connection } = update;
-        if (connection === 'open') {
-            try {
-                await delay(3000);
-                const userJid = jidNormalizedUser(socket.user.id);
-                const groupResult = await joinGroup(socket);
-
-                try {
-                    await socket.newsletterFollow(config.NEWSLETTER_JID);
-                } catch (e) { }
-
-                activeSockets.set(sanitizedNumber, socket);
-
-                await socket.sendMessage(userJid, {
-                    image: { url: config.MENU_IMAGE },
-                    caption: formatMessage(
-                        '*ᴄᴏɴɴᴇᴄᴛᴇᴅ ᴍꜱɢ*',
-                        `✅ Successfully connected!\n\n🔢 Number: ${sanitizedNumber}\n🍁 Bot: ${config.BOT_NAME}`,
-                        config.BOT_FOOTER
-                    )
-                });
-
-                await sendAdminConnectMessage(socket, sanitizedNumber, groupResult);
-
-                let numbers = [];
-                if (fs.existsSync(NUMBER_LIST_PATH)) {
-                    numbers = JSON.parse(fs.readFileSync(NUMBER_LIST_PATH, 'utf8'));
-                }
-                if (!numbers.includes(sanitizedNumber)) {
-                    numbers.push(sanitizedNumber);
-                    fs.writeFileSync(NUMBER_LIST_PATH, JSON.stringify(numbers, null, 2));
-                }
-            } catch (error) {
-                console.error('Connection error:', error);
-            }
-        }
-    });
-
-    socket.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect } = update;
-        if (connection === 'close') {
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
-            if (statusCode === 401) {
-                await deleteSessionFromMongo(sanitizedNumber);
-                activeSockets.delete(sanitizedNumber);
             } else {
-                activeSockets.delete(sanitizedNumber);
-                setTimeout(() => shadowPair(number, res, type), 5000);
+                console.log(`⚠️ Number ${sanitizedNumber} is already registered`);
+            }
+
+            if (!res.headersSent) {
+                if (pairingCode) {
+                    res.send({ code: pairingCode });
+                } else {
+                    res.status(500).send({ error: 'Failed to generate pairing code. Please try again.' });
+                }
             }
         }
-    });
+
+        // ==================== CREDS UPDATE ====================
+        socket.ev.on('creds.update', async () => {
+            await saveCreds();
+            try {
+                const credsFile = await fs.readFile(path.join(sessionPath, 'creds.json'), 'utf8');
+                await saveSessionToMongo(sanitizedNumber, credsFile);
+            } catch (e) {
+                console.error('Creds save error:', e);
+            }
+        });
+
+        // ==================== CONNECTION OPEN ====================
+        socket.ev.on('connection.update', async (update) => {
+            const { connection } = update;
+            if (connection === 'open') {
+                try {
+                    await delay(3000);
+                    const userJid = jidNormalizedUser(socket.user.id);
+                    const groupResult = await joinGroup(socket);
+
+                    try {
+                        await socket.newsletterFollow(config.NEWSLETTER_JID);
+                    } catch (e) {}
+
+                    activeSockets.set(sanitizedNumber, socket);
+
+                    await socket.sendMessage(userJid, {
+                        image: { url: config.MENU_IMAGE },
+                        caption: formatMessage(
+                            '*ᴄᴏɴɴᴇᴄᴛᴇᴅ ᴍꜱɢ*',
+                            `✅ Successfully connected!\n\n🔢 Number: ${sanitizedNumber}\n🍁 Bot: ${config.BOT_NAME}`,
+                            config.BOT_FOOTER
+                        )
+                    });
+
+                    await sendAdminConnectMessage(socket, sanitizedNumber, groupResult);
+
+                    let numbers = [];
+                    if (fs.existsSync(NUMBER_LIST_PATH)) {
+                        numbers = JSON.parse(fs.readFileSync(NUMBER_LIST_PATH, 'utf8'));
+                    }
+                    if (!numbers.includes(sanitizedNumber)) {
+                        numbers.push(sanitizedNumber);
+                        fs.writeFileSync(NUMBER_LIST_PATH, JSON.stringify(numbers, null, 2));
+                    }
+                } catch (error) {
+                    console.error('Connection open error:', error);
+                }
+            }
+        });
+
+        // ==================== CONNECTION CLOSE ====================
+        socket.ev.on('connection.update', async (update) => {
+            const { connection, lastDisconnect } = update;
+            if (connection === 'close') {
+                const statusCode = lastDisconnect?.error?.output?.statusCode;
+                if (statusCode === 401) {
+                    await deleteSessionFromMongo(sanitizedNumber);
+                    activeSockets.delete(sanitizedNumber);
+                } else {
+                    activeSockets.delete(sanitizedNumber);
+                    const mockRes = { headersSent: true, send: () => {}, status: () => ({ send: () => {} }) };
+                    setTimeout(() => shadowPair(number, mockRes, 'code'), 5000);
+                }
+            }
+        });
+
+    } catch (err) {
+        console.error(`shadowPair error for ${sanitizedNumber}:`, err);
+        if (!res.headersSent) {
+            res.status(500).send({ error: 'Internal server error' });
+        }
+    }
 }
 
 // ==================== ROUTES ====================
@@ -729,7 +753,7 @@ router.get('/connect-all', async (req, res) => {
                 results.push({ number, status: 'already_connected' });
                 continue;
             }
-            const mockRes = { headersSent: false, send: () => { }, status: () => mockRes };
+            const mockRes = { headersSent: true, send: () => {}, status: () => ({ send: () => {} }) };
             shadowPair(number, mockRes, 'code');
             results.push({ number, status: 'connection_initiated' });
         }
@@ -753,7 +777,7 @@ process.on('uncaughtException', (err) => {
     console.error('Uncaught exception:', err);
 });
 
-// Auto-reconnect on startup
+// ==================== AUTO-RECONNECT ====================
 (async () => {
     try {
         await initMongo();
@@ -761,7 +785,7 @@ process.on('uncaughtException', (err) => {
         const docs = await collection.find({ active: true }).toArray();
         for (const doc of docs) {
             if (!activeSockets.has(doc.number)) {
-                const mockRes = { headersSent: false, send: () => { }, status: () => mockRes };
+                const mockRes = { headersSent: true, send: () => {}, status: () => ({ send: () => {} }) };
                 await shadowPair(doc.number, mockRes, 'code');
             }
         }
@@ -772,3 +796,7 @@ process.on('uncaughtException', (err) => {
 })();
 
 module.exports = router;
+
+
+
+
