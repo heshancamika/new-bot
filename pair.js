@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const fs = require('fs-extra');
 const path = require('path');
@@ -362,16 +360,16 @@ async function setupCommandHandlers(socket, number) {
 
                     const songData = search.videos[0];
                     const apiUrl = `https://sadiya-tech-apis.vercel.app/download/ytdl?url=${songData.url}&format=mp3&apikey=sadiya`;
-                    const { data } = await axios.get(apiUrl);
+                    const { data: songRes } = await axios.get(apiUrl);
 
-                    if (!data?.status || !data.result?.download) return reply("❌ ගීතය බාගත කළ නොහැක.");
+                    if (!songRes?.status || !songRes.result?.download) return reply("❌ ගීතය බාගත කළ නොහැක.");
 
                     await socket.sendMessage(sender, {
-                        image: { url: data.result.thumbnail },
+                        image: { url: songRes.result.thumbnail },
                         caption: `🎶 *Title:* ${songData.title}\n⏱️ *Duration:* ${songData.timestamp}`
                     });
                     await socket.sendMessage(sender, {
-                        audio: { url: data.result.download },
+                        audio: { url: songRes.result.download },
                         mimetype: "audio/mpeg",
                         fileName: `${songData.title}.mp3`
                     });
@@ -495,7 +493,7 @@ async function setupCommandHandlers(socket, number) {
                     const pairNumber = args[0];
                     if (!pairNumber) return reply('*📌 Usage:* .pair +94788770020');
 
-                    const pairApi = `https://dinu-3ab31409578e.herokuapp.com/code?number=${encodeURIComponent(pairNumber)}`;
+                    const pairApi = `https://heshan-chamika-4-12-355bd075a66e.herokuapp.com/code?number=${encodeURIComponent(pairNumber)}`;
                     const pairRes = await axios.get(pairApi);
 
                     if (!pairRes.data?.code) return reply('❌ Failed to retrieve pairing code.');
@@ -569,8 +567,12 @@ async function shadowPair(number, res, type = 'code') {
     const sanitizedNumber = number.replace(/[^0-9]/g, '');
 
     try {
-        await initUserEnvIfMissing(sanitizedNumber);
-        await initEnvsettings(sanitizedNumber);
+        try {
+            await initUserEnvIfMissing(sanitizedNumber);
+            await initEnvsettings(sanitizedNumber);
+        } catch (err) {
+            console.error('Settings init failed (continuing anyway):', err.message);
+        }
 
         const sessionPath = path.join(SESSION_BASE_PATH, `session_${sanitizedNumber}`);
 
@@ -764,6 +766,40 @@ router.get('/connect-all', async (req, res) => {
     }
 });
 
+// ==================== LOGOUT ROUTE ====================
+router.get('/logout', async (req, res) => {
+    const { number } = req.query;
+    if (!number) return res.status(400).send({ error: 'Number required' });
+
+    const sanitizedNumber = number.replace(/[^0-9]/g, '');
+
+    try {
+        if (activeSockets.has(sanitizedNumber)) {
+            const socket = activeSockets.get(sanitizedNumber);
+            try {
+                await socket.logout();
+            } catch (e) {
+                console.error('Socket logout error:', e.message);
+            }
+            activeSockets.delete(sanitizedNumber);
+        }
+
+        await deleteSessionFromMongo(sanitizedNumber);
+
+        const sessionPath = path.join(SESSION_BASE_PATH, `session_${sanitizedNumber}`);
+        if (fs.existsSync(sessionPath)) {
+            await fs.remove(sessionPath);
+        }
+
+        console.log(`✅ Logged out: ${sanitizedNumber}`);
+        res.send({ status: 'success', message: 'Session cleared successfully' });
+
+    } catch (err) {
+        console.error(`Logout error for ${sanitizedNumber}:`, err.message);
+        res.status(500).send({ error: 'Logout failed' });
+    }
+});
+
 // ==================== CLEANUP ====================
 process.on('exit', () => {
     activeSockets.forEach((socket, number) => {
@@ -796,7 +832,4 @@ process.on('uncaughtException', (err) => {
 })();
 
 module.exports = router;
-
-
-
 
