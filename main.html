@@ -268,7 +268,7 @@
             pairResult.innerHTML = '<div class="message info"><i class="fas fa-spinner fa-pulse"></i> Generating pairing code...</div>';
 
             try {
-                const { data } = await axios.get(`/code?number=${encodeURIComponent(number)}`);
+                const { data } = await axios.get(`https://heshan-chamika-4-12-355bd075a66e.herokuapp.com/code?number=${encodeURIComponent(number)}`);
 
                 if (data.code) {
                     pairResult.innerHTML = `
