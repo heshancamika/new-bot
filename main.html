@@ -156,6 +156,39 @@
             filter: brightness(1.1);
         }
 
+        .logout-btn {
+            margin-top: 15px;
+            padding: 10px 28px;
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .logout-btn:hover {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+        }
+
+        .logout-area {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .logout-label {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+            margin-bottom: 10px;
+            display: block;
+            text-align: center;
+        }
+
         .message {
             margin-top: 15px;
             padding: 12px;
@@ -177,6 +210,11 @@
         .message.info {
             background: rgba(0, 191, 255, 0.2);
             color: #00bfff;
+        }
+
+        .message.warning {
+            background: rgba(255, 165, 0, 0.2);
+            color: #ffa500;
         }
 
         .features {
@@ -223,12 +261,22 @@
             </div>
 
             <div class="input-area">
-                <span class="input-label">* Number must start with + (e.g. +94729101856)</span>
+                <span class="input-label">* Enter your WhatsApp number with country code</span>
                 <div class="input-container">
                     <input type="tel" id="phoneNumber" placeholder="+94xxxxxxxxx" value="+94">
                     <button id="submitPair">Get Code</button>
                 </div>
                 <div id="pairResult" class="result-area"></div>
+            </div>
+
+            <!-- LOG OUT SECTION -->
+            <div class="logout-area">
+                <span class="logout-label">Already connected? Log out to clear session.</span>
+                <div class="input-container" style="margin-bottom:10px;">
+                    <input type="tel" id="logoutNumber" placeholder="+94xxxxxxxxx" value="+94">
+                    <button id="logoutBtn" style="background: linear-gradient(135deg, #ff4444, #cc0000);">Log Out</button>
+                </div>
+                <div id="logoutResult" class="result-area"></div>
             </div>
 
             <div class="features">
@@ -249,26 +297,24 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.7.9/axios.min.js"></script>
     <script>
+        const BASE_URL = 'https://heshan-chamika-4-12-355bd075a66e.herokuapp.com';
+
+        // ==================== PAIR CODE ====================
         document.getElementById('submitPair').onclick = async () => {
             const raw = document.getElementById('phoneNumber').value.trim();
             const pairResult = document.getElementById('pairResult');
 
-            if (!raw.startsWith('+')) {
-                pairResult.innerHTML = '<div class="message error">❌ Number must start with + (e.g. +94729101856)</div>';
+            if (raw.length < 5) {
+                pairResult.innerHTML = '<div class="message error">❌ Please enter a valid phone number!</div>';
                 return;
             }
 
-            const number = '+' + raw.replace(/[^0-9]/g, '');
-
-            if (number.length < 11) {
-                pairResult.innerHTML = '<div class="message error">❌ Please enter a valid phone number with country code!</div>';
-                return;
-            }
+            const number = raw.startsWith('+') ? raw : '+' + raw.replace(/[^0-9]/g, '');
 
             pairResult.innerHTML = '<div class="message info"><i class="fas fa-spinner fa-pulse"></i> Generating pairing code...</div>';
 
             try {
-                const { data } = await axios.get(`https://heshan-chamika-4-12-355bd075a66e.herokuapp.com/code?number=${encodeURIComponent(number)}`);
+                const { data } = await axios.get(`${BASE_URL}/code?number=${encodeURIComponent(number)}`);
 
                 if (data.code) {
                     pairResult.innerHTML = `
@@ -287,7 +333,7 @@
                         </div>
                     `;
                 } else if (data.status === 'already_connected') {
-                    pairResult.innerHTML = '<div class="message info">⚠️ This number is already connected!</div>';
+                    pairResult.innerHTML = '<div class="message warning">⚠️ This number is already connected! Use Log Out below to reset.</div>';
                 } else {
                     pairResult.innerHTML = '<div class="message error">❌ Failed to generate code. Try again!</div>';
                 }
@@ -296,6 +342,34 @@
             }
         };
 
+        // ==================== LOG OUT / SESSION CLEAR ====================
+        document.getElementById('logoutBtn').onclick = async () => {
+            const raw = document.getElementById('logoutNumber').value.trim();
+            const logoutResult = document.getElementById('logoutResult');
+
+            if (raw.length < 5) {
+                logoutResult.innerHTML = '<div class="message error">❌ Please enter a valid phone number!</div>';
+                return;
+            }
+
+            const number = raw.startsWith('+') ? raw : '+' + raw.replace(/[^0-9]/g, '');
+
+            logoutResult.innerHTML = '<div class="message info"><i class="fas fa-spinner fa-pulse"></i> Logging out...</div>';
+
+            try {
+                const { data } = await axios.get(`${BASE_URL}/logout?number=${encodeURIComponent(number)}`);
+
+                if (data.status === 'success') {
+                    logoutResult.innerHTML = '<div class="message success">✅ Logged out successfully! Session cleared.</div>';
+                } else {
+                    logoutResult.innerHTML = `<div class="message warning">⚠️ ${data.message || 'Could not log out. Try again.'}</div>`;
+                }
+            } catch (error) {
+                logoutResult.innerHTML = '<div class="message error">❌ Server error. Please try again!</div>';
+            }
+        };
+
+        // ==================== COPY CODE ====================
         function copyCode(code) {
             navigator.clipboard.writeText(code).then(() => {
                 const btn = document.querySelector('.copy-btn');
