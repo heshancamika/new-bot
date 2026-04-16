@@ -7,17 +7,14 @@ let code = require('./pair');
 
 require('events').EventEmitter.defaultMaxListeners = 500;
 
-__path = process.cwd();
+global.__path = process.cwd();
 
 app.use('/code', code);
 app.use('/pair', async (req, res, next) => {
-    res.sendFile(__path + '/pair.html');
+    res.sendFile(__path + '/main.html');
 });
 app.use('/', async (req, res, next) => {
     res.sendFile(__path + '/main.html');
-});
-app.use('/pair-qr', async (req, res, next) => {
-    res.sendFile(__path + '/pair-qr.html');
 });
 
 app.use(bodyParser.json());
