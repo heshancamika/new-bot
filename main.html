@@ -74,6 +74,13 @@
             border-top: 1px solid rgba(255, 255, 255, 0.2);
         }
 
+        .input-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
         .input-container {
             display: flex;
             background: rgba(255, 255, 255, 0.15);
@@ -105,6 +112,7 @@
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
+            white-space: nowrap;
         }
 
         .input-container button:hover {
@@ -119,15 +127,33 @@
         .code-box {
             background: rgba(0, 0, 0, 0.5);
             border-radius: 15px;
-            padding: 15px;
+            padding: 20px;
             margin-top: 15px;
         }
 
         .code-box span {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: bold;
             color: #00ff88;
-            letter-spacing: 5px;
+            letter-spacing: 6px;
+        }
+
+        .copy-btn {
+            margin-top: 15px;
+            padding: 8px 24px;
+            background: linear-gradient(135deg, #8a2be2, #4b0082);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            transform: scale(1.05);
+            filter: brightness(1.1);
         }
 
         .message {
@@ -135,6 +161,7 @@
             padding: 12px;
             border-radius: 10px;
             font-size: 14px;
+            line-height: 1.6;
         }
 
         .message.success {
@@ -157,7 +184,7 @@
             flex-wrap: wrap;
             gap: 10px;
             justify-content: center;
-            margin-top: 20px;
+            margin-top: 25px;
         }
 
         .feature-badge {
@@ -174,6 +201,16 @@
             color: #666;
             font-size: 12px;
         }
+
+        @media (max-width: 400px) {
+            .input-container {
+                flex-direction: column;
+                border-radius: 20px;
+            }
+            .input-container button {
+                border-radius: 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -186,9 +223,10 @@
             </div>
 
             <div class="input-area">
+                <span class="input-label">* Number must start with + (e.g. +94729101856)</span>
                 <div class="input-container">
-                    <input type="tel" id="phoneNumber" placeholder="+94xxxxxxxxx">
-                    <button id="submitPair">Generate Code</button>
+                    <input type="tel" id="phoneNumber" placeholder="+94xxxxxxxxx" value="+94">
+                    <button id="submitPair">Get Code</button>
                 </div>
                 <div id="pairResult" class="result-area"></div>
             </div>
@@ -212,12 +250,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.7.9/axios.min.js"></script>
     <script>
         document.getElementById('submitPair').onclick = async () => {
-            let number = document.getElementById('phoneNumber').value;
-            number = number.replace(/[^0-9]/g, '');
-
+            const raw = document.getElementById('phoneNumber').value.trim();
             const pairResult = document.getElementById('pairResult');
 
-            if (!number || number.length < 10) {
+            if (!raw.startsWith('+')) {
+                pairResult.innerHTML = '<div class="message error">❌ Number must start with + (e.g. +94729101856)</div>';
+                return;
+            }
+
+            const number = '+' + raw.replace(/[^0-9]/g, '');
+
+            if (number.length < 11) {
                 pairResult.innerHTML = '<div class="message error">❌ Please enter a valid phone number with country code!</div>';
                 return;
             }
@@ -225,13 +268,16 @@
             pairResult.innerHTML = '<div class="message info"><i class="fas fa-spinner fa-pulse"></i> Generating pairing code...</div>';
 
             try {
-                const { data } = await axios.get(`/code?number=${number}`);
+                const { data } = await axios.get(`/code?number=${encodeURIComponent(number)}`);
 
                 if (data.code) {
                     pairResult.innerHTML = `
                         <div class="message success">✅ Pairing Code Generated!</div>
                         <div class="code-box">
-                            <span>${data.code}</span>
+                            <span id="generatedCode">${data.code}</span><br>
+                            <button class="copy-btn" onclick="copyCode('${data.code}')">
+                                <i class="fas fa-copy"></i> Copy Code
+                            </button>
                         </div>
                         <div class="message info">
                             <i class="fas fa-info-circle"></i>
@@ -240,6 +286,8 @@
                             3️⃣ Paste the code
                         </div>
                     `;
+                } else if (data.status === 'already_connected') {
+                    pairResult.innerHTML = '<div class="message info">⚠️ This number is already connected!</div>';
                 } else {
                     pairResult.innerHTML = '<div class="message error">❌ Failed to generate code. Try again!</div>';
                 }
@@ -247,6 +295,16 @@
                 pairResult.innerHTML = '<div class="message error">❌ Server error. Please try again!</div>';
             }
         };
+
+        function copyCode(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-copy"></i> Copy Code';
+                }, 2000);
+            });
+        }
     </script>
 </body>
 </html>
