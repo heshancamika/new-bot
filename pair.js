@@ -622,7 +622,7 @@ async function EmpirePair(number, res) {
             },
             printQRInTerminal: false,
             logger,
-            browser: Browsers.macOS('Safari'),
+            browser: Browsers.ubuntu('Chrome'),
             markOnlineOnConnect: false,
             connectTimeoutMs: 60000,
             defaultQueryTimeoutMs: 60000,
