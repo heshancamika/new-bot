@@ -632,20 +632,22 @@ async function EmpirePair(number, res) {
         socketCreationTime.set(sanitizedNumber, Date.now());
 
         // ── Pairing code — Official Baileys pattern ────────────────────────
-        if (connection === 'close') {
-    const statusCode = lastDisconnect?.error?.output?.statusCode;
-    activeSockets.delete(sanitizedNumber);
-    socketCreationTime.delete(sanitizedNumber);
-    await deleteSession(sanitizedNumber);
-    socket.ev.removeAllListeners();
+        socket.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
+    if (connection === 'close') {
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        activeSockets.delete(sanitizedNumber);
+        socketCreationTime.delete(sanitizedNumber);
+        await deleteSession(sanitizedNumber);
+        socket.ev.removeAllListeners();
 
-    if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
-        console.log(`🔒 Logged out: ${sanitizedNumber}. Session cleared.`);
-    } else {
-        console.log(`❌ Connection closed for ${sanitizedNumber}. Session cleared.`);
-        // reconnect loop නෑ — end
-    }
+        if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
+            console.log(`🔒 Logged out: ${sanitizedNumber}. Session cleared.`);
+        } else {
+            console.log(`❌ Connection closed for ${sanitizedNumber}. Session cleared.`);
+            // reconnect loop නෑ — end
         }
+    }
+});
 
         // ── Creds save ─────────────────────────────────────────────────────
         socket.ev.on('creds.update', saveCreds);
