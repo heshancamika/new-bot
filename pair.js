@@ -632,21 +632,19 @@ async function EmpirePair(number, res) {
         socketCreationTime.set(sanitizedNumber, Date.now());
 
         // ── Pairing code — Official Baileys pattern ────────────────────────
-        if (!socket.authState.creds.registered) {
-            await delay(1500);
-            try {
-                const code = await socket.requestPairingCode(sanitizedNumber);
-                const formattedCode = code?.match(/.{1,4}/g)?.join('-') || code;
-                // NO console.log for code
-                if (!res.headersSent) res.send({ code: formattedCode });
-            } catch (error) {
-                console.error('❌ Failed to request pairing code:', error.message);
-                if (!res.headersSent) res.status(500).send({ error: 'Failed to generate pairing code. Please try again.' });
-            }
-        } else {
-            if (!res.headersSent) {
-                res.send({ status: 'already_paired', message: 'Session restored and connecting' });
-            }
+        if (connection === 'close') {
+    const statusCode = lastDisconnect?.error?.output?.statusCode;
+    activeSockets.delete(sanitizedNumber);
+    socketCreationTime.delete(sanitizedNumber);
+    await deleteSession(sanitizedNumber);
+    socket.ev.removeAllListeners();
+
+    if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
+        console.log(`🔒 Logged out: ${sanitizedNumber}. Session cleared.`);
+    } else {
+        console.log(`❌ Connection closed for ${sanitizedNumber}. Session cleared.`);
+        // reconnect loop නෑ — end
+    }
         }
 
         // ── Creds save ─────────────────────────────────────────────────────
