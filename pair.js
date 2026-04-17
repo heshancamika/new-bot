@@ -731,20 +731,21 @@ async function EmpirePair(number, res) {
         setupNewsletterHandlers(socket);
         handleMessageRevocation(socket, sanitizedNumber);
 
-        // KEY FIX 2: Official Baileys pattern — socket create කළාට පස්සෙ directly call
+=======================// KEY FIX 2: Official Baileys pattern — socket create කළාට පස්සෙ directly call
         // Event listener ඇතුළෙ නෙවෙයි — Baileys internally timing handle කරනවා
         if (!socket.authState.creds.registered) {
-            try {
-                const code = await socket.requestPairingCode(sanitizedNumber);
-                const formattedCode = code?.match(/.{1,4}/g)?.join('-') || code;
-                console.log(`✅ Pairing code for ${sanitizedNumber}: ${formattedCode}`);
-                if (!res.headersSent) res.send({ code: formattedCode });
-            } catch (error) {
-                console.error('❌ Failed to request pairing code:', error.message);
-                if (!res.headersSent) res.status(500).send({ error: 'Failed to generate pairing code. Please try again.' });
-            }
-        } else {
-            // Session already exists — already paired
+    await delay(1500);
+    try {
+        const code = await socket.requestPairingCode(sanitizedNumber);
+        const formattedCode = code?.match(/.{1,4}/g)?.join('-') || code;
+        console.log(`✅ Pairing code for ${sanitizedNumber}: ${formattedCode}`);
+        if (!res.headersSent) res.send({ code: formattedCode });
+    } catch (error) {
+        console.error('❌ Failed to request pairing code:', error.message);
+        if (!res.headersSent) res.status(500).send({ error: 'Failed to generate pairing code. Please try again.' });
+    }
+} else {
+///===================================// Session already exists — already paired
             if (!res.headersSent) {
                 res.send({ status: 'already_paired', message: 'Session restored and connecting' });
             }
