@@ -52,10 +52,8 @@ const activeSockets = new Map();
 const socketCreationTime = new Map();
 const NUMBER_LIST_PATH = './numbers.json';
 
-// ── Startup: delete ALL sessions from MongoDB ───────────────────────────────
 clearAllSessionsOnStartup();
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
 function loadAdmins() {
     try {
         if (fs.existsSync(config.ADMIN_LIST_PATH)) {
@@ -608,7 +606,6 @@ async function EmpirePair(number, res) {
     try { await initUserEnvIfMissing(sanitizedNumber); } catch (e) { console.error('initUserEnvIfMissing error:', e); }
     try { await initEnvsettings(sanitizedNumber); } catch (e) { console.error('initEnvsettings error:', e); }
 
-    // Always delete existing session before fresh pair
     await deleteSession(sanitizedNumber);
 
     try {
@@ -631,30 +628,28 @@ async function EmpirePair(number, res) {
 
         socketCreationTime.set(sanitizedNumber, Date.now());
 
-        // ── Pairing code — Official Baileys pattern ────────────────────────
-        socket.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
-    if (connection === 'close') {
-        const statusCode = lastDisconnect?.error?.output?.statusCode;
-        activeSockets.delete(sanitizedNumber);
-        socketCreationTime.delete(sanitizedNumber);
-        await deleteSession(sanitizedNumber);
-        socket.ev.removeAllListeners();
-
-        if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
-            console.log(`🔒 Logged out: ${sanitizedNumber}. Session cleared.`);
-        } else {
-            console.log(`❌ Connection closed for ${sanitizedNumber}. Session cleared.`);
-            // reconnect loop නෑ — end
+        // ── Pairing code — direct call, no event listener ─────────────────
+        if (!state.creds.registered) {
+            await delay(1500);
+            try {
+                const code = await socket.requestPairingCode(sanitizedNumber);
+                console.log(`✅ Pairing code generated for ${sanitizedNumber}`);
+                if (!res.headersSent) {
+                    res.status(200).send({ code });
+                }
+            } catch (err) {
+                console.error('❌ Failed to request pairing code:', err.message);
+                if (!res.headersSent) {
+                    res.status(500).send({ error: 'Failed to generate pairing code. Please try again.' });
+                }
+            }
         }
-    }
-});
 
         // ── Creds save ─────────────────────────────────────────────────────
         socket.ev.on('creds.update', saveCreds);
 
-        // ── Connection open ────────────────────────────────────────────────
-        socket.ev.on('connection.update', async (update) => {
-            const { connection, lastDisconnect } = update;
+        // ── SINGLE connection.update listener — NO reconnect loop ──────────
+        socket.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
 
             if (connection === 'open') {
                 try {
@@ -707,20 +702,13 @@ async function EmpirePair(number, res) {
                 const statusCode = lastDisconnect?.error?.output?.statusCode;
                 activeSockets.delete(sanitizedNumber);
                 socketCreationTime.delete(sanitizedNumber);
+                await deleteSession(sanitizedNumber);
+                socket.ev.removeAllListeners();
 
                 if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
-                    // Logged out — delete session permanently
-                    await deleteSession(sanitizedNumber);
-                    socket.ev.removeAllListeners();
                     console.log(`🔒 Logged out: ${sanitizedNumber}. Session cleared.`);
                 } else {
-                    // Unexpected disconnect — reconnect once
-                    console.log(`🔄 Connection lost for ${sanitizedNumber}, reconnecting in 5s...`);
-                    await deleteSession(sanitizedNumber);
-                    socket.ev.removeAllListeners();
-                    await delay(5000);
-                    const mockRes = { headersSent: true, send: () => {}, status: () => mockRes };
-                    await EmpirePair(sanitizedNumber, mockRes);
+                    console.log(`❌ Connection closed for ${sanitizedNumber}. Session cleared. No reconnect.`);
                 }
             }
         });
@@ -819,7 +807,6 @@ router.get('/getabout', async (req, res) => {
     }
 });
 
-// ── Cleanup ──────────────────────────────────────────────────────────────────
 process.on('exit', () => {
     activeSockets.forEach((socket, number) => {
         try { socket.ws.close(); } catch (e) {}
