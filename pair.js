@@ -731,7 +731,7 @@ async function EmpirePair(number, res) {
         setupNewsletterHandlers(socket);
         handleMessageRevocation(socket, sanitizedNumber);
 
-=======================// KEY FIX 2: Official Baileys pattern — socket create කළාට පස්සෙ directly call
+//===================================// KEY FIX 2: Official Baileys pattern — socket create කළාට පස්සෙ directly call
         // Event listener ඇතුළෙ නෙවෙයි — Baileys internally timing handle කරනවා
         if (!socket.authState.creds.registered) {
     await delay(1500);
