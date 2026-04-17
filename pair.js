@@ -619,7 +619,7 @@ async function EmpirePair(number, res) {
             },
             printQRInTerminal: false,
             logger,
-            browser: Browsers.ubuntu('Chrome'),
+            browser: Browsers.ubuntu('Desktop'),
             markOnlineOnConnect: false,
             connectTimeoutMs: 60000,
             defaultQueryTimeoutMs: 60000,
