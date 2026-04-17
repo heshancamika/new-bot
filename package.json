@@ -9,6 +9,7 @@
   },
 "dependencies": {
   "@octokit/rest": "^20.0.2",
+  "mongoose": "^8.0.0",
   "@whiskeysockets/baileys": "7.0.0-rc.9",
   "axios": "^1.2.5",
   "body-parser": "^2.2.0",
