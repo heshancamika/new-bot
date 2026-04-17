@@ -8,12 +8,11 @@ const axios = require('axios');
 const yts = require('yt-search');
 const fetch = require('node-fetch');
 const os = require('os');
-const { initUserEnvIfMissing } = require('./settingsdb');
+const { initUserEnvIfMissing, useMongoDBAuthState, deleteSession, clearAllSessionsOnStartup } = require('./settingsdb');
 const { initEnvsettings, getSetting } = require('./settings');
 
 const {
     default: makeWASocket,
-    useMultiFileAuthState,
     delay,
     makeCacheableSignalKeyStore,
     Browsers,
@@ -49,32 +48,14 @@ const config = {
     }
 };
 
-// MongoDB Setup
-const { MongoClient } = require('mongodb');
-const { v4: uuidv4 } = require('uuid');
-
-const mongoUri = 'mongodb+srv://heshancamika_db_user:XM8EiSj9zHJLeMuG@cluster0.nimdgb1.mongodb.net/?appName=Cluster0';
-const client = new MongoClient(mongoUri);
-let db;
-
-async function initMongo() {
-    if (!db) {
-        await client.connect();
-        db = client.db('data1');
-        await db.collection('sessions').createIndex({ number: 1 });
-    }
-    return db;
-}
-
 const activeSockets = new Map();
 const socketCreationTime = new Map();
-const SESSION_BASE_PATH = './session';
 const NUMBER_LIST_PATH = './numbers.json';
 
-if (!fs.existsSync(SESSION_BASE_PATH)) {
-    fs.mkdirSync(SESSION_BASE_PATH, { recursive: true });
-}
+// ── Startup: delete ALL sessions from MongoDB ───────────────────────────────
+clearAllSessionsOnStartup();
 
+// ── Helpers ─────────────────────────────────────────────────────────────────
 function loadAdmins() {
     try {
         if (fs.existsSync(config.ADMIN_LIST_PATH)) {
@@ -101,10 +82,10 @@ function runtime(seconds) {
     const h = Math.floor((seconds % (3600 * 24)) / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = Math.floor(seconds % 60);
-    const dDisplay = d > 0 ? d + (d === 1 ? " day, " : " days, ") : "";
-    const hDisplay = h > 0 ? h + (h === 1 ? " hour, " : " hours, ") : "";
-    const mDisplay = m > 0 ? m + (m === 1 ? " minute, " : " minutes, ") : "";
-    const sDisplay = s > 0 ? s + (s === 1 ? " second" : " seconds") : "";
+    const dDisplay = d > 0 ? d + (d === 1 ? ' day, ' : ' days, ') : '';
+    const hDisplay = h > 0 ? h + (h === 1 ? ' hour, ' : ' hours, ') : '';
+    const mDisplay = m > 0 ? m + (m === 1 ? ' minute, ' : ' minutes, ') : '';
+    const sDisplay = s > 0 ? s + (s === 1 ? ' second' : ' seconds') : '';
     return dDisplay + hDisplay + mDisplay + sDisplay;
 }
 
@@ -286,10 +267,10 @@ function setupCommandHandlers(socket, number) {
                     const hours = Math.floor(uptime / 3600);
                     const minutes = Math.floor((uptime % 3600) / 60);
                     const seconds = Math.floor(uptime % 60);
-                    await socket.sendMessage(sender, { react: { text: "😻", key: msg.key } });
+                    await socket.sendMessage(sender, { react: { text: '😻', key: msg.key } });
                     const kariyane = `┏┳━ \`ᴀʟʟ ᴍᴇɴᴜ\`\n┃ *✭ ʙᴏᴛ ɴᴀᴍᴇ - HASHEN-x-ᴍɪɴɪ*\n┃ *✭ ᴘʟᴀᴛꜰʀᴏᴍ - Heroku*\n┃ *✭ ᴜᴘᴛɪᴍᴇ:* ${hours}h ${minutes}m ${seconds}s\n┗━┛\n\n\n\n\n╭─╼® ⚡ ʙᴏᴛ ᴍᴇɴᴜ ⚡ ¯╼─────▌\n┣📌 𝑺ʏsᴛᴇᴍ\n*│ 🟢 .ᴀʟɪᴠᴇ →*\n┣ ʙᴏᴛ ᴏɴʟɪɴᴇ ᴄʜᴇᴄᴋ\n*│ 📶 .ᴘɪɴɢ →*\n┣ sᴘᴇᴇᴅ ᴛᴇsᴛ\n*│ ⚙️ .sʏsᴛᴇᴍ →*\n┣ ʙᴏᴛ sʏsᴛᴇᴍ ɪɴꜰᴏ\n*│ 👑 .ᴏᴡɴᴇʀ →*\n┣ sʜᴏᴡ ʙᴏᴛ ᴏᴡɴᴇʀs\n┢━━━━━━━━━━━━━━━━━━━━━➢\n┡🎵 𝑴ᴇᴅɪᴀ\n*│ 🎼 .sᴏɴɢ <ɴᴀᴍᴇ>  →*\n┣ ᴅᴏᴡɴʟᴏᴀᴅ sᴏɴɢ\n*│ 📘 .ꜰʙ <ᴜʀʟ> →*\n┣ ꜰᴀᴄᴇʙᴏᴏᴋ ᴠɪᴅᴇᴏ ᴅᴏᴡɴ\n*│ 🎶 .ᴛɪᴋᴛᴏᴋsᴇᴀʀᴄʜ <ɴᴀᴍᴇ> →*\n┣  sᴇᴀʀᴄʜ ᴛɪᴋᴛᴏᴋ\n*│ 🎵 .ᴛɪᴋᴛᴏᴋ <ᴜʀʟ> →*\n┣ ᴛɪᴋᴛᴏᴋ ᴅʟ\n*│ 📲 .ᴀᴘᴋ <ɴᴀᴍᴇ> →*\n┣ ᴀᴘᴋ ᴅᴏᴡɴʟᴏᴀᴅ\n┢━━━━━━━━━━━━━━━━━━━━━➢\n┡🛠 𝑻ᴏᴏʟs\n*│ 📦 .ɴᴘᴍ <ᴘᴀᴄᴋᴀɢᴇ> →*\n┣ ɢᴇᴛ ɴᴘᴍ ɪɴꜰᴏ\n*│ 🔍 .ɢᴏᴏɢʟᴇ <ǫᴜᴇʀʏ> →*\n┣ ɢᴏᴏɢʟᴇ sᴇᴀʀᴄʜ\n*│ 🤖 .ᴀɪ <ᴘʀᴏᴍᴘᴛ> →*\n┣ ᴄʜᴀᴛ ᴡɪᴛʜ ᴀɪ\n*│ 🖼️ .ɢᴇᴛᴅᴘ <ᴊɪᴅ> →*\n┣ ɢᴇᴛ ᴘʀᴏꜰɪʟᴇ ᴘɪᴄ\n*│ 💥 .ʙᴏᴏᴍ <ɴᴜᴍ|ᴄᴏᴜɴᴛ> →*\n┣ ʙᴏᴏᴍ ɴᴜᴍʙᴇʀ\n┢━━━━━━━━━━━━━━━━━━━━━➢\n┡📗 𝑾ʜᴀᴛsᴀᴘᴘ\n*│ 📗 .ᴘᴀɪʀ <ᴄᴏᴅᴇ> →*\n┣ ᴘᴀɪʀ sᴇssɪᴏɴ\n*│ 🆔 .ᴊɪᴅ →*\n┣ ɢᴇᴛ ᴄʜᴀᴛ ᴊɪᴅ\n*│ 📡 .ᴄɪᴅ <ʟɪɴᴋ> →*\n┣ ɢᴇᴛ ᴄʜᴀɴɴᴇʟ ɪɴꜰᴏ\n╰━━━━━━━━━━━━━━━━━━━━━ˈ⊷`;
                     await socket.sendMessage(sender, {
-                        image: { url: "https://files.catbox.moe/riqrud.jpg" },
+                        image: { url: 'https://files.catbox.moe/riqrud.jpg' },
                         caption: kariyane,
                         contextInfo: {
                             mentionedJid: ['94729101856@s.whatsapp.net'],
@@ -297,14 +278,14 @@ function setupCommandHandlers(socket, number) {
                             isForwarded: false,
                             forwardedNewsletterMessageInfo: {
                                 newsletterJid: '120363424090172812@newsletter',
-                                newsletterName: "HASHEN-𝐗-ᴍɪɴɪ-𝐁ᴏᴛ",
+                                newsletterName: 'HASHEN-𝐗-ᴍɪɴɪ-𝐁ᴏᴛ',
                                 serverMessageId: 999
                             },
                             externalAdReply: {
                                 title: 'ᴍᴜʟᴛɪ ᴅᴇᴠɪᴄᴇ ᴍɪɴɪ ᴡʜᴀᴛsᴀᴘᴘ ʙᴏᴛ',
                                 body: 'HASHEN-x-ᴍɪɴɪ-ʙ 1',
                                 mediaType: 1,
-                                sourceUrl: "https://hashen-mini-bot.onrender.com/",
+                                sourceUrl: 'https://hashen-mini-bot.onrender.com/',
                                 thumbnailUrl: 'https://files.catbox.moe/riqrud.jpg',
                                 renderLargerThumbnail: false,
                                 showAdAttribution: false
@@ -316,28 +297,28 @@ function setupCommandHandlers(socket, number) {
 
                 case 'song': {
                     try {
-                        const q = args.join(" ");
-                        if (!q || q.trim() === "") {
-                            return await socket.sendMessage(sender, { text: "🎶 *කරුණාකර ගීතයේ නමක් හෝ YouTube link එකක් දෙන්න!*" }, { quoted: msg });
+                        const q = args.join(' ');
+                        if (!q || q.trim() === '') {
+                            return await socket.sendMessage(sender, { text: '🎶 *කරුණාකර ගීතයේ නමක් හෝ YouTube link එකක් දෙන්න!*' }, { quoted: msg });
                         }
                         const search = await yts(q);
                         if (!search.videos || search.videos.length === 0) {
-                            return await socket.sendMessage(sender, { text: "*❌ ගීතය හමුනොවුණා.*" }, { quoted: msg });
+                            return await socket.sendMessage(sender, { text: '*❌ ගීතය හමුනොවුණා.*' }, { quoted: msg });
                         }
                         const data = search.videos[0];
                         const ytUrl = data.url;
                         const api = `https://sadiya-tech-apis.vercel.app/download/ytdl?url=${ytUrl}&format=mp3&apikey=sadiya`;
                         const { data: apiRes } = await axios.get(api);
                         if (!apiRes?.status || !apiRes.result?.download) {
-                            return await socket.sendMessage(sender, { text: "❌ ගීතය බාගත කළ නොහැක." }, { quoted: msg });
+                            return await socket.sendMessage(sender, { text: '❌ ගීතය බාගත කළ නොහැක.' }, { quoted: msg });
                         }
                         const result = apiRes.result;
                         const caption = `╭───────────────╮\n🎶 *Title:* ${data.title}\n⏱️ *Duration:* ${data.timestamp}\n👁️ *Views:* ${data.views}\n📅 *Released:* ${data.ago}\n╰───────────────╯`;
                         await socket.sendMessage(sender, { image: { url: result.thumbnail }, caption });
-                        await socket.sendMessage(sender, { audio: { url: result.download }, mimetype: "audio/mpeg", fileName: `${data.title}.mp3` });
+                        await socket.sendMessage(sender, { audio: { url: result.download }, mimetype: 'audio/mpeg', fileName: `${data.title}.mp3` });
                     } catch (e) {
                         console.error(e);
-                        await socket.sendMessage(sender, { text: "❌ *දෝෂයක්!*" }, { quoted: msg });
+                        await socket.sendMessage(sender, { text: '❌ *දෝෂයක්!*' }, { quoted: msg });
                     }
                     break;
                 }
@@ -355,7 +336,7 @@ function setupCommandHandlers(socket, number) {
                 }
 
                 case 'owner': {
-                    await socket.sendMessage(sender, { react: { text: "👤", key: msg.key } });
+                    await socket.sendMessage(sender, { react: { text: '👤', key: msg.key } });
                     const ownerContact = {
                         contacts: {
                             displayName: 'My Contacts',
@@ -373,7 +354,7 @@ function setupCommandHandlers(socket, number) {
                 case 'fbdl':
                 case 'facebook': {
                     try {
-                        const fbUrl = args.join(" ");
+                        const fbUrl = args.join(' ');
                         if (!fbUrl) return await socket.sendMessage(sender, { text: '*Please provide a fb video url..*' }, { quoted: msg });
                         const apiKey = 'e276311658d835109c';
                         const apiUrl = `https://api.nexoracle.com/downloader/facebook?apikey=${apiKey}&url=${encodeURIComponent(fbUrl)}`;
@@ -388,7 +369,7 @@ function setupCommandHandlers(socket, number) {
                 }
 
                 case 'system': {
-                    const title = "*◉ sʏsᴛᴇᴍ ɪɴꜰᴏ ◉*";
+                    const title = '*◉ sʏsᴛᴇᴍ ɪɴꜰᴏ ◉*';
                     let totalStorage = Math.floor(os.totalmem() / 1024 / 1024) + 'MB';
                     let cpuSpeed = os.cpus()[0].speed / 1000;
                     let cpuCount = os.cpus().length;
@@ -403,7 +384,7 @@ function setupCommandHandlers(socket, number) {
                     try {
                         const { data, status } = await axios.get(`https://registry.npmjs.org/${encodeURIComponent(q)}`);
                         if (status !== 200) return await socket.sendMessage(sender, { text: '🚫 Package not found.' }, { quoted: msg });
-                        const latestVersion = data["dist-tags"]?.latest || 'N/A';
+                        const latestVersion = data['dist-tags']?.latest || 'N/A';
                         const description = data.description || 'No description available.';
                         const license = data.license || 'Unknown';
                         const repository = data.repository ? data.repository.url.replace('git+', '').replace('.git', '') : 'Not available';
@@ -436,20 +417,20 @@ function setupCommandHandlers(socket, number) {
 
                 case 'apk': {
                     const query = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || '').replace(/^[.\/!]apk\s*/i, '').trim();
-                    if (!query) { await socket.sendMessage(sender, { text: "*🔍 Please provide an app name.\n\n_Usage:_\n.apk Instagram" }); break; }
+                    if (!query) { await socket.sendMessage(sender, { text: '*🔍 Please provide an app name.\n\n_Usage:_\n.apk Instagram' }); break; }
                     try {
-                        await socket.sendMessage(sender, { react: { text: "⬇️", key: msg.key } });
+                        await socket.sendMessage(sender, { react: { text: '⬇️', key: msg.key } });
                         const response = await axios.get(`http://ws75.aptoide.com/api/7/apps/search/query=${encodeURIComponent(query)}/limit=1`);
                         const data = response.data;
-                        if (!data.datalist?.list?.length) { await socket.sendMessage(sender, { text: "❌ *No APK found.*" }); break; }
+                        if (!data.datalist?.list?.length) { await socket.sendMessage(sender, { text: '❌ *No APK found.*' }); break; }
                         const app = data.datalist.list[0];
                         const sizeMB = (app.size / (1024 * 1024)).toFixed(2);
                         const caption = `🎮 *App Name:* ${app.name}\n📦 *Package:* ${app.package}\n📅 *Last Updated:* ${app.updated}\n📐 *Size:* ${sizeMB} MB\n\n> > ᴘᴏᴡᴇʀᴅ ʙʏ ᴍᴇɴᴜ x ᴍɪɴɪ ◉`;
-                        await socket.sendMessage(sender, { react: { text: "⬆️", key: msg.key } });
+                        await socket.sendMessage(sender, { react: { text: '⬆️', key: msg.key } });
                         await socket.sendMessage(sender, { document: { url: app.file.path_alt }, fileName: `${app.name}.apk`, mimetype: 'application/vnd.android.package-archive', caption, quoted: msg });
-                        await socket.sendMessage(sender, { react: { text: "✅", key: msg.key } });
+                        await socket.sendMessage(sender, { react: { text: '✅', key: msg.key } });
                     } catch (e) {
-                        await socket.sendMessage(sender, { text: "❌ *Error occurred while downloading the APK.*" });
+                        await socket.sendMessage(sender, { text: '❌ *Error occurred while downloading the APK.*' });
                     }
                     break;
                 }
@@ -497,15 +478,15 @@ function setupCommandHandlers(socket, number) {
                     const GEMINI_API_KEY = 'AIzaSyBdBivCo6jWSchTb8meP7VyxbHpoNY_qfQ';
                     const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
                     const q = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || '');
-                    if (!q || q.trim() === '') return await socket.sendMessage(sender, { text: "Hy i am Freedom ai ◉" }, { quoted: msg });
+                    if (!q || q.trim() === '') return await socket.sendMessage(sender, { text: 'Hy i am Freedom ai ◉' }, { quoted: msg });
                     const prompt = `ඔබ සාබ ගෝහාණු ලමයෙකු මෙන් හාසිරිය යුතුය. User Message: ${q}`;
                     try {
-                        const response = await axios.post(GEMINI_API_URL, { contents: [{ parts: [{ text: prompt }] }] }, { headers: { "Content-Type": "application/json" } });
+                        const response = await axios.post(GEMINI_API_URL, { contents: [{ parts: [{ text: prompt }] }] }, { headers: { 'Content-Type': 'application/json' } });
                         const aiResponse = response?.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-                        if (!aiResponse) return await socket.sendMessage(sender, { text: "❌ Error." }, { quoted: msg });
+                        if (!aiResponse) return await socket.sendMessage(sender, { text: '❌ Error.' }, { quoted: msg });
                         await socket.sendMessage(sender, { text: aiResponse }, { quoted: msg });
                     } catch (err) {
-                        await socket.sendMessage(sender, { text: "❌ Error" }, { quoted: msg });
+                        await socket.sendMessage(sender, { text: '❌ Error' }, { quoted: msg });
                     }
                     break;
                 }
@@ -517,7 +498,7 @@ function setupCommandHandlers(socket, number) {
                     if (!match) return await socket.sendMessage(sender, { text: '⚠️ *Invalid channel link format.*' }, { quoted: msg });
                     const inviteId = match[1];
                     try {
-                        const metadata = await socket.newsletterMetadata("invite", inviteId);
+                        const metadata = await socket.newsletterMetadata('invite', inviteId);
                         if (!metadata?.id) return await socket.sendMessage(sender, { text: '❌ Channel not found.' }, { quoted: msg });
                         const infoText = `\n📡 *WhatsApp Channel Info*\n\n🆔 *ID:* ${metadata.id}\n📌 *Name:* ${metadata.name}\n👥 *Followers:* ${metadata.subscribers?.toLocaleString() || 'N/A'}\n`;
                         if (metadata.preview) {
@@ -535,14 +516,14 @@ function setupCommandHandlers(socket, number) {
                 case 'getpp':
                 case 'getprofile': {
                     try {
-                        if (!args[0]) return await socket.sendMessage(sender, { text: "🔥 Please provide a phone number\n\nExample: .getdp 94788770020" });
-                        let targetJid = args[0].replace(/[^0-9]/g, "") + "@s.whatsapp.net";
+                        if (!args[0]) return await socket.sendMessage(sender, { text: '🔥 Please provide a phone number\n\nExample: .getdp 94788770020' });
+                        let targetJid = args[0].replace(/[^0-9]/g, '') + '@s.whatsapp.net';
                         let ppUrl;
-                        try { ppUrl = await socket.profilePictureUrl(targetJid, "image"); }
-                        catch (e) { return await socket.sendMessage(sender, { text: "🖼️ No profile picture or cannot be accessed!" }); }
-                        await socket.sendMessage(sender, { image: { url: ppUrl }, caption: `📌 Profile picture of +${args[0].replace(/[^0-9]/g, "")}` });
+                        try { ppUrl = await socket.profilePictureUrl(targetJid, 'image'); }
+                        catch (e) { return await socket.sendMessage(sender, { text: '🖼️ No profile picture or cannot be accessed!' }); }
+                        await socket.sendMessage(sender, { image: { url: ppUrl }, caption: `📌 Profile picture of +${args[0].replace(/[^0-9]/g, '')}` });
                     } catch (e) {
-                        await socket.sendMessage(sender, { text: "🛑 An error occurred!" });
+                        await socket.sendMessage(sender, { text: '🛑 An error occurred!' });
                     }
                     break;
                 }
@@ -558,8 +539,8 @@ function setupCommandHandlers(socket, number) {
                         await socket.sendMessage(sender, { text: '⏳ Downloading...' }, { quoted: msg });
                         const { data } = await axios.get(`https://delirius-apiofc.vercel.app/download/tiktok?url=${encodeURIComponent(link)}`);
                         if (!data?.status || !data?.data) return await socket.sendMessage(sender, { text: '❌ Failed to fetch TikTok video.' }, { quoted: msg });
-                        const { title, like, comment, share, author, meta } = data.data;
-                        const video = meta.media.find(v => v.type === "video");
+                        const { title, like, author, meta } = data.data;
+                        const video = meta.media.find(v => v.type === 'video');
                         if (!video?.org) return await socket.sendMessage(sender, { text: '❌ No downloadable video found.' }, { quoted: msg });
                         const caption = `🎵 *TIKTOK DOWNLOADR*\n\n👤 *User:* ${author.nickname}\n📖 *Title:* ${title}\n👍 *Likes:* ${like}`;
                         await socket.sendMessage(sender, { video: { url: video.org }, caption }, { quoted: msg });
@@ -574,9 +555,9 @@ function setupCommandHandlers(socket, number) {
                 case 'search': {
                     try {
                         if (!args || args.length === 0) { await socket.sendMessage(sender, { text: '⚠️ *Please provide a search query.*' }); break; }
-                        const query = args.join(" ");
-                        const apiKey = "AIzaSyDMbI3nvmQUrfjoCJYLS69Lej1hSXQjnWI";
-                        const cx = "baf9bdb0c631236e5";
+                        const query = args.join(' ');
+                        const apiKey = 'AIzaSyDMbI3nvmQUrfjoCJYLS69Lej1hSXQjnWI';
+                        const cx = 'baf9bdb0c631236e5';
                         const response = await axios.get(`https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${apiKey}&cx=${cx}`);
                         if (response.status !== 200 || !response.data.items?.length) { await socket.sendMessage(sender, { text: `⚠️ *No results found for:* ${query}` }); break; }
                         let results = `🔍 *Google Search Results for:* "${query}"\n\n`;
@@ -618,71 +599,8 @@ function setupMessageHandlers(socket) {
     });
 }
 
-async function deleteSessionFromMongo(number) {
-    try {
-        const sanitizedNumber = number.replace(/[^0-9]/g, '');
-        const db = await initMongo();
-        await db.collection('sessions').deleteOne({ number: sanitizedNumber });
-        console.log(`Deleted session for ${sanitizedNumber} from MongoDB`);
-    } catch (error) {
-        console.error('Failed to delete session from MongoDB:', error);
-    }
-}
-
-async function renameCredsOnLogout(number) {
-    try {
-        const sanitizedNumber = number.replace(/[^0-9]/g, '');
-        const db = await initMongo();
-        const collection = db.collection('sessions');
-        const count = (await collection.countDocuments({ active: false })) + 1;
-        await collection.updateOne(
-            { number: sanitizedNumber },
-            { $rename: { "creds": `delete_creds${count}` }, $set: { active: false } }
-        );
-        console.log(`Renamed creds for ${sanitizedNumber}`);
-    } catch (error) {
-        console.error('Failed to rename creds on logout:', error);
-    }
-}
-
-async function restoreSession(number) {
-    try {
-        const sanitizedNumber = number.replace(/[^0-9]/g, '');
-        const db = await initMongo();
-        const doc = await db.collection('sessions').findOne({ number: sanitizedNumber, active: true });
-        if (!doc || !doc.creds) return null;
-        return JSON.parse(doc.creds);
-    } catch (error) {
-        console.error('Session restore failed:', error);
-        return null;
-    }
-}
-
-function setupAutoRestart(socket, number) {
-    const sanitizedNumber = number.replace(/[^0-9]/g, '');
-    socket.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect } = update;
-        if (connection === 'close') {
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
-            if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
-                console.log(`Connection closed due to logout for ${number}`);
-                await renameCredsOnLogout(number);
-                activeSockets.delete(sanitizedNumber);
-                socketCreationTime.delete(sanitizedNumber);
-            } else {
-                console.log(`Connection lost for ${number}, attempting to reconnect in 5s...`);
-                activeSockets.delete(sanitizedNumber);
-                socketCreationTime.delete(sanitizedNumber);
-                await delay(5000);
-                const mockRes = { headersSent: true, send: () => {}, status: () => mockRes };
-                await EmpirePair(number, mockRes);
-            }
-        }
-    });
-}
-
 // =============================================
-// MAIN PAIRING FUNCTION — Official Baileys Pattern
+// MAIN PAIRING FUNCTION
 // =============================================
 async function EmpirePair(number, res) {
     const sanitizedNumber = number.replace(/[^0-9]/g, '');
@@ -690,24 +608,13 @@ async function EmpirePair(number, res) {
     try { await initUserEnvIfMissing(sanitizedNumber); } catch (e) { console.error('initUserEnvIfMissing error:', e); }
     try { await initEnvsettings(sanitizedNumber); } catch (e) { console.error('initEnvsettings error:', e); }
 
-    const sessionPath = path.join(SESSION_BASE_PATH, `session_${sanitizedNumber}`);
-
-    // Restore session from MongoDB if no local session exists
-    const localCredsExist = fs.existsSync(path.join(sessionPath, 'creds.json'));
-    if (!localCredsExist) {
-        const restoredCreds = await restoreSession(sanitizedNumber);
-        if (restoredCreds) {
-            await fs.ensureDir(sessionPath);
-            await fs.writeFile(path.join(sessionPath, 'creds.json'), JSON.stringify(restoredCreds, null, 2));
-            console.log(`Successfully restored session for ${sanitizedNumber}`);
-        }
-    }
-
-    const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-    const logger = pino({ level: 'silent' });
+    // Always delete existing session before fresh pair
+    await deleteSession(sanitizedNumber);
 
     try {
-        // KEY FIX 1: markOnlineOnConnect: false — WhatsApp notification receive කරන්න
+        const { state, saveCreds } = await useMongoDBAuthState(sanitizedNumber);
+        const logger = pino({ level: 'silent' });
+
         const socket = makeWASocket({
             auth: {
                 creds: state.creds,
@@ -716,7 +623,7 @@ async function EmpirePair(number, res) {
             printQRInTerminal: false,
             logger,
             browser: Browsers.macOS('Safari'),
-            markOnlineOnConnect: false,   // ← WhatsApp "Link a device" notification fix
+            markOnlineOnConnect: false,
             connectTimeoutMs: 60000,
             defaultQueryTimeoutMs: 60000,
             keepAliveIntervalMs: 30000
@@ -724,54 +631,31 @@ async function EmpirePair(number, res) {
 
         socketCreationTime.set(sanitizedNumber, Date.now());
 
-        setupStatusHandlers(socket);
-        setupCommandHandlers(socket, sanitizedNumber);
-        setupMessageHandlers(socket);
-        setupAutoRestart(socket, sanitizedNumber);
-        setupNewsletterHandlers(socket);
-        handleMessageRevocation(socket, sanitizedNumber);
-
-//===================================// KEY FIX 2: Official Baileys pattern — socket create කළාට පස්සෙ directly call
-        // Event listener ඇතුළෙ නෙවෙයි — Baileys internally timing handle කරනවා
+        // ── Pairing code — Official Baileys pattern ────────────────────────
         if (!socket.authState.creds.registered) {
-    await delay(1500);
-    try {
-        const code = await socket.requestPairingCode(sanitizedNumber);
-        const formattedCode = code?.match(/.{1,4}/g)?.join('-') || code;
-        console.log(`✅ Pairing code for ${sanitizedNumber}: ${formattedCode}`);
-        if (!res.headersSent) res.send({ code: formattedCode });
-    } catch (error) {
-        console.error('❌ Failed to request pairing code:', error.message);
-        if (!res.headersSent) res.status(500).send({ error: 'Failed to generate pairing code. Please try again.' });
-    }
-} else {
-///===================================// Session already exists — already paired
+            await delay(1500);
+            try {
+                const code = await socket.requestPairingCode(sanitizedNumber);
+                const formattedCode = code?.match(/.{1,4}/g)?.join('-') || code;
+                // NO console.log for code
+                if (!res.headersSent) res.send({ code: formattedCode });
+            } catch (error) {
+                console.error('❌ Failed to request pairing code:', error.message);
+                if (!res.headersSent) res.status(500).send({ error: 'Failed to generate pairing code. Please try again.' });
+            }
+        } else {
             if (!res.headersSent) {
                 res.send({ status: 'already_paired', message: 'Session restored and connecting' });
             }
         }
 
-        // Creds save + MongoDB sync
-        socket.ev.on('creds.update', async () => {
-            await saveCreds();
-            try {
-                const fileContent = await fs.readFile(path.join(sessionPath, 'creds.json'), 'utf8');
-                const database = await initMongo();
-                const sessionId = uuidv4();
-                await database.collection('sessions').updateOne(
-                    { number: sanitizedNumber },
-                    { $set: { sessionId, number: sanitizedNumber, creds: fileContent, active: true, updatedAt: new Date() } },
-                    { upsert: true }
-                );
-                console.log(`Saved creds for ${sanitizedNumber}`);
-            } catch (e) {
-                console.error('Failed to save creds to MongoDB:', e);
-            }
-        });
+        // ── Creds save ─────────────────────────────────────────────────────
+        socket.ev.on('creds.update', saveCreds);
 
-        // On connection open
+        // ── Connection open ────────────────────────────────────────────────
         socket.ev.on('connection.update', async (update) => {
-            const { connection } = update;
+            const { connection, lastDisconnect } = update;
+
             if (connection === 'open') {
                 try {
                     await delay(3000);
@@ -807,8 +691,36 @@ async function EmpirePair(number, res) {
                         numbers.push(sanitizedNumber);
                         fs.writeFileSync(NUMBER_LIST_PATH, JSON.stringify(numbers, null, 2));
                     }
+
+                    setupStatusHandlers(socket);
+                    setupCommandHandlers(socket, sanitizedNumber);
+                    setupMessageHandlers(socket);
+                    setupNewsletterHandlers(socket);
+                    handleMessageRevocation(socket, sanitizedNumber);
+
                 } catch (error) {
                     console.error('Connection open error:', error);
+                }
+            }
+
+            if (connection === 'close') {
+                const statusCode = lastDisconnect?.error?.output?.statusCode;
+                activeSockets.delete(sanitizedNumber);
+                socketCreationTime.delete(sanitizedNumber);
+
+                if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
+                    // Logged out — delete session permanently
+                    await deleteSession(sanitizedNumber);
+                    socket.ev.removeAllListeners();
+                    console.log(`🔒 Logged out: ${sanitizedNumber}. Session cleared.`);
+                } else {
+                    // Unexpected disconnect — reconnect once
+                    console.log(`🔄 Connection lost for ${sanitizedNumber}, reconnecting in 5s...`);
+                    await deleteSession(sanitizedNumber);
+                    socket.ev.removeAllListeners();
+                    await delay(5000);
+                    const mockRes = { headersSent: true, send: () => {}, status: () => mockRes };
+                    await EmpirePair(sanitizedNumber, mockRes);
                 }
             }
         });
@@ -822,7 +734,7 @@ async function EmpirePair(number, res) {
     }
 }
 
-// Routes
+// ── Routes ───────────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
     const { number, force } = req.query;
     if (!number) return res.status(400).send({ error: 'Number parameter is required' });
@@ -835,9 +747,7 @@ router.get('/', async (req, res) => {
     }
 
     if (forceRepair) {
-        const sessionPath = path.join(SESSION_BASE_PATH, `session_${sanitizedNumber}`);
-        await deleteSessionFromMongo(sanitizedNumber);
-        if (fs.existsSync(sessionPath)) await fs.remove(sessionPath);
+        await deleteSession(sanitizedNumber);
         activeSockets.delete(sanitizedNumber);
         socketCreationTime.delete(sanitizedNumber);
         console.log(`Forced re-pair for ${sanitizedNumber}: deleted old session`);
@@ -875,13 +785,12 @@ router.get('/connect-all', async (req, res) => {
 
 router.get('/reconnect', async (req, res) => {
     try {
-        const database = await initMongo();
-        const docs = await database.collection('sessions').find({ active: true }).toArray();
-        if (docs.length === 0) return res.status(404).send({ error: 'No active sessions found' });
+        if (!fs.existsSync(NUMBER_LIST_PATH)) return res.status(404).send({ error: 'No numbers found' });
+        const numbers = JSON.parse(fs.readFileSync(NUMBER_LIST_PATH));
+        if (numbers.length === 0) return res.status(404).send({ error: 'No numbers found' });
         const results = [];
         const promises = [];
-        for (const doc of docs) {
-            const number = doc.number;
+        for (const number of numbers) {
             if (activeSockets.has(number)) { results.push({ number, status: 'already_connected' }); continue; }
             const mockRes = { headersSent: true, send: () => {}, status: () => mockRes };
             promises.push(EmpirePair(number, mockRes).then(() => ({ number, status: 'connection_initiated' })).catch(error => ({ number, status: 'failed', error: error.message })));
@@ -906,44 +815,22 @@ router.get('/getabout', async (req, res) => {
         const setAt = statusData.setAt ? moment(statusData.setAt).tz('Asia/Colombo').format('YYYY-MM-DD HH:mm:ss') : 'Unknown';
         res.status(200).send({ status: 'success', number: target, about: aboutStatus, setAt });
     } catch (error) {
-        res.status(500).send({ status: 'error', message: `Failed to fetch About status.` });
+        res.status(500).send({ status: 'error', message: 'Failed to fetch About status.' });
     }
 });
 
-// Cleanup
+// ── Cleanup ──────────────────────────────────────────────────────────────────
 process.on('exit', () => {
     activeSockets.forEach((socket, number) => {
         try { socket.ws.close(); } catch (e) {}
         activeSockets.delete(number);
         socketCreationTime.delete(number);
     });
-    try { fs.emptyDirSync(SESSION_BASE_PATH); } catch (e) {}
-    try { client.close(); } catch (e) {}
 });
 
 process.on('uncaughtException', async (err) => {
     console.error('Uncaught exception:', err);
 });
-
-// Auto-reconnect on startup
-(async () => {
-    try {
-        const database = await initMongo();
-        const docs = await database.collection('sessions').find({ active: true }).toArray();
-        console.log(`Found ${docs.length} active sessions to reconnect`);
-        for (const doc of docs) {
-            const number = doc.number;
-            if (!activeSockets.has(number)) {
-                const mockRes = { headersSent: true, send: () => {}, status: () => mockRes };
-                await EmpirePair(number, mockRes);
-                await delay(3000);
-            }
-        }
-        console.log('Auto-reconnect completed on startup');
-    } catch (error) {
-        console.error('Failed to auto-reconnect on startup:', error);
-    }
-})();
 
 module.exports = router;
 
